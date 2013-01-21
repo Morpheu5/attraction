@@ -20,7 +20,10 @@ void update() {
 void draw() {
   update();
   
-  background(0,0,0);
+  pg.beginDraw();
+  pg.background(0, 100);
+  pg.endDraw();
+  image(pg, 0, 0, width, height);
   
   particleController.draw();
 }

@@ -3,12 +3,8 @@ class MagParticle extends Particle {
   
   MagParticle() {
     super();
-    colour = color(210, 100, 100);
+    colour = color(210, 100, 100, 100);
     magnitude = 1.0f;
-  }
-  
-  void applyForce(PVector force) {
-    acceleration.set(new PVector(0, 0));
   }
   
   void update() {
