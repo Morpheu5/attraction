@@ -5,8 +5,10 @@
  * properties according to their surrounding environment.
  */
 class ParticleController {
-  /** The local pool of particles that are managed by this controller. */
+  /** The local pools of particles that are managed by this controller. */
   ArrayList particles;
+  ArrayList magParticles;
+  
   float minRadius;
   /**
    * This sets the upper limit for the range of radii. It's a property of
@@ -18,20 +20,33 @@ class ParticleController {
    * The constructor takes an integer setting the number of particles this
    * controller will manage.
    */
-  ParticleController(int quantity) {
+  ParticleController(int particlesCount, int attractorsCount) {
     // Always remember to initialize the non-primitive data types.
     particles = new ArrayList();
+    magParticles = new ArrayList();
+    
     minRadius = 1.0f;
     maxRadius = 10.0f;
     
     // Here we create the particles in the pool and configure them a bit.
-    for(int i = 0; i < quantity; i++) {
+    for(int i = 0; i < particlesCount; i++) {
       Particle p = new Particle();
-      p.position = new PVector(width/2, height/2);
+      p.position = new PVector(random(width), random(height));
       p.radius = random(minRadius, maxRadius);
       p.colour = color(0, 0, 100);
       p.decay = map(p.radius, minRadius, maxRadius, 0.1f, 0.9f);
       particles.add(p);
+    }
+    
+    // Here we create the magnetic particles.
+    for(int i = 0; i < attractorsCount; i++) {
+      MagParticle m = new MagParticle();
+      float r = (width*height) / (width+height);
+      m.position = new PVector(r/2, 0);
+      m.position.rotate(2*PI*i/attractorsCount);
+      m.position.add(random(width/20)+width/2, random(height/20)+height/2, 0);
+      m.radius = random(2*maxRadius, 3 * maxRadius);
+      magParticles.add(m);
     }
   }
   
@@ -44,17 +59,18 @@ class ParticleController {
     /* This first loop allows us to work on each and every particle in the pool. */
     for(int i = 0; i < particles.size(); i++) {
       Particle p = (Particle) particles.get(i);
-
-      // These three lines attract the particles to the center of the window.
-      // First, retrieve the vector going from the particle to the center and use
-      // it as a force. Ok, it doesn't work like this but hey :)
-      PVector attractionToCenter = PVector.sub(new PVector(width/2, height/2), p.position.get());
-      // Then do some mumbo-jumbo to scale it down so we can...
-      attractionToCenter.mult(0.001f);
-      // ... apply it...
-      p.applyForce(attractionToCenter);
-      // ... and this moves the particle toward the center of the window!
       
+      // This is how the magnetic particles will attract the other particles
+      for(int j = 0; j < magParticles.size(); j++) {
+        MagParticle m = (MagParticle) magParticles.get(j);
+        m.update();
+        
+        PVector magForce = PVector.sub(m.position.get(), p.position.get());
+        float distance = magForce.mag() / m.magnitude;
+        magForce.div(distance);
+        p.applyForce(magForce);
+      }
+
       /* This is where we make particles that are too close to each other make
        * room for themselves by pushing the others away. But don't worry, the
        * other will do the same to us so we're even :)
@@ -82,9 +98,9 @@ class ParticleController {
           if(dSqr > 0.0f) {
             float force = (direction.mag() * p.radius) / dSqr;
             direction.normalize();
-            direction.mult(force);
+            direction.mult(-force);
             PVector oppositeDirection = new PVector(-direction.x, -direction.y);
-            // ... the vector that pushes them apart. Cool uh?
+            // ... the vector that pulls them together. Cool uh?
             p.applyForce(direction);
             q.applyForce(oppositeDirection);
           }
@@ -99,6 +115,10 @@ class ParticleController {
    * particles we want them to draw themselves.
    */
   void draw() {
+    for(int i = 0; i < magParticles.size(); i++) {
+      MagParticle m = (MagParticle) magParticles.get(i);
+      m.draw();
+    }
     for(int i = 0; i < particles.size(); i++) {
       Particle p = (Particle) particles.get(i);
       p.draw();
